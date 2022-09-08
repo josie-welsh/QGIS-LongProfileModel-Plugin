@@ -1,27 +1,29 @@
 # QGIS-LongProfileModel-Plugin
-Code for a QGIS plugin that takes lsdtopotools-network-tool outputs and creates long profile and modeled long profiles.
+This QGIS plugin takes outputs from lsdtt-network-tool and creates long profile and modeled historic long profile figures. This tool can be used to quickly create high quality figures directly in QGIS, streamlining the data visualization process. 
+
+Another functionality of this tool is that it can be used to model historic long profiles pre-base-level fall. If multiple long profiles from rivers with the same base level, then a paleo-base-level can be found. 
 
 ## How to Use the Tool
 ### Download the Plugin
-1. Download the plugin from this github repository. Once it has downloaded exctract the zip file and copy the folder labeled **long_profile_modeler**. We will be pasting this folder in a specific location in step 4. 
+1. Download the plugin from this github repository. Once it has downloaded exctract the zip file and copy the folder labeled **long_profile_modeler**. You will be pasting this folder in a specific location in step 4. 
 
 2. Open a QGIS window
 
 3. In the **Menu Toolbar**, click on **Settings**. Within the **Settings** menu, hover over user profiles to expand the options, then select **Open Active Profile Folder**. This pulls up the location where QGIS looks for information.
 
-4. Within the file explorer window that was opened in the previous step and open the **python** folder and within the python folder open the **plugins** folder. This folder contains all of your downloaded QGIS plugins, so this is where we would like to add our plugin folder. Paste the **long_profile_modeler** file that was copied in step 1 here.
+4. Within the file explorer window that was opened in the previous step, open the **python** folder, then open the **plugins** folder. This folder contains all of your downloaded QGIS plugins, so this is where you should add your plugin folder. Paste the **long_profile_modeler** file that was copied in step 1 here.
 
-5. Restart QGIS. Now that we have added our folder to the plugins folder, we need to restart QGIS in order for it to recognize the changes we have made. 
+5. Restart QGIS. Now that you have added the **long_profile_modeler** folder to the plugins folder, you need to restart QGIS in order for it to recognize the changes that were made. 
 
-6. Now that QGIS has been restarted, we can finalize the installation of the plugin. In the **Menu Toolbar**, click on **Plugins**, then click on **Manage and Install Plugins...** from the sub-menu.
-7. Search for **Long Profile Modeler** in the **All** tab and the plugin should show up. Click on the plugin in the list, then click **Install Plugin** to install it. Before closing the window, make sure that on the list of plugins, the checkbox next to the desired plugin it is checked. 
+6. Now that QGIS has been restarted, you can finalize the installation of the plugin. In the **Menu Toolbar**, click on **Plugins**, then click on **Manage and Install Plugins...** from the sub-menu.
+7. Search for **Long Profile Modeler** in the **All** tab and the plugin should show up. Click on the plugin in the list, then click **Install Plugin** to install it. Before closing the window, make sure that on the list of plugins, the checkbox next to **Long Profile Modeler** it is checked. 
 
 Now the plugin is installed and ready to be used!
 
 ### Preliminary Steps
-1. Create a dataset for a single basin using LSDTopoTools. For detailed instructions on this step, see here.
+1. Create a dataset for a single basin using LSDTopoTools. For detailed instructions on this step, see part 1 in the guide [here](https://github.com/pjMitchell490/qgis_lsdtt_network_tool). Additional information about how to use LSDTopoTools can be found [here](https://lsdtopotools.github.io/LSDTT_documentation/).
 
-2. Use the LSDTT Network Tool to create the preliminary datasets needed to run the long profile model plugin. FOr detailed instructions on this step, see here.
+2. Use the LSDTT Network Tool to create the preliminary datasets needed to run the long profile model plugin. For detailed instructions on this step, see part 2 [here](https://github.com/pjMitchell490/qgis_lsdtt_network_tool).
 
 Once these steps are complete, you can start using the Long Profile Modeler. 
 
@@ -30,13 +32,13 @@ Once these steps are complete, you can start using the Long Profile Modeler.
 
 2. Load the layers created by the network tool into your project. This should include both a segments layer and a nodes layer. 
 
-3. Navigate to the **Plugins** menu and select **Long Progile Modeler** within the sub-menu. This will open a new window for the user interface of the the Long Profile Modeler. The plugin is divided into 3 tabs, **Create Single Flowpath**, **Drainage Area - Slope**, and **Modeled Long Profile**. You will want to work through these tabs in the above order, as entered/calculated information from earlier tabs is used on later tabs. 
+3. Navigate to the **Plugins** menu and select **Long Progile Modeler** within the sub-menu. This will open a new window for the user interface of the the Long Profile Modeler. The plugin is divided into 3 tabs, **Create Single Flowpath**, **Drainage Area - Slope**, and **Modeled Long Profile**. You will want to work through these tabs in the above order because entered/calculated information from earlier tabs is used on later tabs. 
 
-Starting with the **Create Single Flowpath** tab. What we will do on this tab is combine information from both of the layers from the lsdtt-network-tool and create a dataset of points that represent one flowpath.
+Starting with the **Create Single Flowpath** tab. What you will do on this tab is combine information from both of the layers from the lsdtt-network-tool and create a dataset of points that represent one flowpath.
 
-4. From the drop down menus select the layers you loaded into QGIS. Ensure that the layers are under the correct label. Nodes layers will likely have  **_nodes** at the end of the file name. 
+4. From the drop down boxes select the layers you loaded into QGIS. Ensure that the layers are under the correct label. Nodes layers will likely have  **_nodes** at the end of the file name. 
 
-5. Enter the **Input Segment ID** for the flowpath that you are interested in looking at. How do I know what **Input Segment ID** is associated with my flowpath of interest? Generally speaking, when we are looking at river long profiles, we are interested in an entire flowpath, from the channel head to the mouth of the river. Without going into the nitty-gritty details, this plugin creates a flowpath by starting from a given point and working downstream until it finds the end of the network. So, whichever starting point you pick will be the furthest upstream point found for your flowpath. Because of this, we generally want to choose a channel head as our input node. Once you have identified a channel head or starting segment of interest, return to the main QGIS window. select the **Identify Features** button on the **Attributes Toolbar** at the top of the window. This will pull up a new panel called **Identify Results**. Make sure that the **segments** layer is selected in the layers list, then click on the segment of interest. Once a segment is selected, it will be highlighted in red and values will fill the **Identify Results** panel. The value labeled **id** is the number you should use for **Input Segment ID**.
+5. Enter the **Input Segment ID** for the flowpath that you are interested in looking at. How do you know what **Input Segment ID** is associated with your flowpath of interest? Without going into the nitty-gritty details, this plugin creates a flowpath by starting from a given point and working downstream until it finds the end of the network. So, whichever starting point you pick will be the furthest upstream point found for your flowpath. Because of this, you will generally want to choose a channel head as your input node. Once you have identified a channel head or starting segment of interest, return to the main QGIS window. select the **Identify Features** button on the **Attributes Toolbar** at the top of the window. This will pull up a new panel called **Identify Results**. Make sure that the **segments** layer is selected in the layers list, then click on the segment of interest. Once a segment is selected, it will be highlighted in red and values will fill the **Identify Results** panel. The value labeled **id** is the number you should use for **Input Segment ID**.
 
 6. The final step on this tab is to select a file name and location for the flowpath dataset that will be generated. Generally, keeping this data in the same place as the data from the lsdtt-network-tool is the simplest way to keep things organized.
 
@@ -44,7 +46,7 @@ Starting with the **Create Single Flowpath** tab. What we will do on this tab is
 
 8. Proceed to the **Drainage Area - Slope** tab.
 
-In the **Drainage Area - Slope** tab, we will be looking at the dataset generated in the previous step in slope vs. drainage area space. In this space we can fit a power law function to a portion of the data, allowing us to  generate models of historic long-profiles in following steps. 
+In the **Drainage Area - Slope** tab, you will be looking at the dataset generated in the previous step in slope vs. drainage area space. In this space you can fit a power law function to a portion of the data, allowing us to  generate models of historic long-profiles in following steps. 
 
 9. The file generated in the previous step should have autopopulated the **Selected Channel File** box, but if not or if you already have a flowpath dataset ready, then you can use the **...** button to select a file.
 
