@@ -216,10 +216,6 @@ class LongProfileModelerDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsProject.instance().addMapLayer(vlayer)
 
 
-        #Populate the pbLoadselectedChannel button with the file that you generated
-        self.fwSelectedChannelInput.setFilePath(self.fwSelectedChannelFileOutput.filePath())
-
-
 
 
 
@@ -232,10 +228,43 @@ class LongProfileModelerDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
     def onpbLoadSelectedChannelclicked(self):
-        #import the chosen drainage path from the 
-        selected_channel = self.fwSelectedChannelInput.filePath()
-        dfpath_nodes = gpd.read_file(selected_channel)
-        #print (dfpath_nodes)
+
+        if self.fwSelectedChannelInput.filePath() == '':
+            selected_channel = self.mlcbSelectedChannelInput.currentLayer()
+            id = []
+            lat = []
+            long = []
+            elevation_m = []
+            flow_distance_m = []
+            drainage_area_m2 = []
+            segment_id = []
+            slope = []
+
+            #Now lets fill these lists
+            for point in selected_channel.getFeatures():
+                #print("Node ID:", segment.id())
+                attrs = point.attributes()
+                #print(attrs)
+                id.append(attrs[0])
+                lat.append(attrs[1])
+                long.append(attrs[2])
+                elevation_m.append(attrs[3])
+                flow_distance_m.append(attrs[4])
+                drainage_area_m2.append(attrs[5])
+                segment_id.append(attrs[6])
+                slope.append(attrs[7])
+
+            #put the lists into a dictionary and then into a dataframe    
+            data_from_path = {'id': id, 'lat': lat, 'long': long, 'elevation_m': elevation_m, 'flow_distance_m': flow_distance_m, 'drainage_area_m2': drainage_area_m2, 'segment_id': segment_id,'slope': slope}
+
+            dfpath_nodes = pd.DataFrame(data_from_path)
+
+        else:
+            #import the chosen drainage path from the file
+            selected_channel = self.fwSelectedChannelInput.filePath()
+            dfpath_nodes = gpd.read_file(selected_channel)
+            #print (dfpath_nodes)
+
 
         #create a list of drainage areas for slope-area analysis
         drainage_area_as = []
@@ -248,6 +277,8 @@ class LongProfileModelerDialog(QtWidgets.QDialog, FORM_CLASS):
         for i in range(len(dfpath_nodes)):
             sl = float(dfpath_nodes['slope'][i])
             slope.append(sl)
+
+
 
         #Plot in log-log space using matplotlib
         fig, ax = plt.subplots()
@@ -264,10 +295,42 @@ class LongProfileModelerDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
     def onpbCalculateFitclicked(self):
-        #import the chosen drainage path from the 
-        selected_channel = self.fwSelectedChannelInput.filePath()
-        dfpath_nodes = gpd.read_file(selected_channel)
-        #print (dfpath_nodes)
+        
+        if self.fwSelectedChannelInput.filePath() == '':
+            selected_channel = self.mlcbSelectedChannelInput.currentLayer()
+            id = []
+            lat = []
+            long = []
+            elevation_m = []
+            flow_distance_m = []
+            drainage_area_m2 = []
+            segment_id = []
+            slope = []
+
+            #Now lets fill these lists
+            for point in selected_channel.getFeatures():
+                #print("Node ID:", segment.id())
+                attrs = point.attributes()
+                #print(attrs)
+                id.append(attrs[0])
+                lat.append(attrs[1])
+                long.append(attrs[2])
+                elevation_m.append(attrs[3])
+                flow_distance_m.append(attrs[4])
+                drainage_area_m2.append(attrs[5])
+                segment_id.append(attrs[6])
+                slope.append(attrs[7])
+
+            #put the lists into a dictionary and then into a dataframe    
+            data_from_path = {'id': id, 'lat': lat, 'long': long, 'elevation_m': elevation_m, 'flow_distance_m': flow_distance_m, 'drainage_area_m2': drainage_area_m2, 'segment_id': segment_id,'slope': slope}
+
+            dfpath_nodes = pd.DataFrame(data_from_path)
+
+        else:
+            #import the chosen drainage path from the file
+            selected_channel = self.fwSelectedChannelInput.filePath()
+            dfpath_nodes = gpd.read_file(selected_channel)
+            #print (dfpath_nodes)
 
         #create fit range values from user inputs
         min = self.sbMinValue.value() * (10**self.sbMinExponent.value())
@@ -336,10 +399,41 @@ class LongProfileModelerDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
     def onpbGenerateLongProfilesclicked(self):
-        #import the chosen drainage path from the 
-        selected_channel = self.fwSelectedChannelInput.filePath()
-        dfpath_nodes = gpd.read_file(selected_channel)
-        #print (dfpath_nodes)
+        if self.fwSelectedChannelInput.filePath() == '':
+            selected_channel = self.mlcbSelectedChannelInput.currentLayer()
+            id = []
+            lat = []
+            long = []
+            elevation_m = []
+            flow_distance_m = []
+            drainage_area_m2 = []
+            segment_id = []
+            slope = []
+
+            #Now lets fill these lists
+            for point in selected_channel.getFeatures():
+                #print("Node ID:", segment.id())
+                attrs = point.attributes()
+                #print(attrs)
+                id.append(attrs[0])
+                lat.append(attrs[1])
+                long.append(attrs[2])
+                elevation_m.append(attrs[3])
+                flow_distance_m.append(attrs[4])
+                drainage_area_m2.append(attrs[5])
+                segment_id.append(attrs[6])
+                slope.append(attrs[7])
+
+            #put the lists into a dictionary and then into a dataframe    
+            data_from_path = {'id': id, 'lat': lat, 'long': long, 'elevation_m': elevation_m, 'flow_distance_m': flow_distance_m, 'drainage_area_m2': drainage_area_m2, 'segment_id': segment_id,'slope': slope}
+
+            dfpath_nodes = pd.DataFrame(data_from_path)
+
+        else:
+            #import the chosen drainage path from the file
+            selected_channel = self.fwSelectedChannelInput.filePath()
+            dfpath_nodes = gpd.read_file(selected_channel)
+            #print (dfpath_nodes)
 
         def power_law(drainage_area, ks, theta):
             slope = ks*(drainage_area**(-theta))
