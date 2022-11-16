@@ -23,7 +23,11 @@
 """
 
 import os
-#from typing import ParamSpecArgs
+import webbrowser
+from .tool_generate_selected_channel_file import GenerateSelectedChannelFile
+from .tool_drainage_area_slope import DrainageAreaSlope, LoadSelectedFile
+from .tool_generate_long_profiles import GenerateLongProfiles
+
 import pandas as pd
 import geopandas as gpd
 import numpy as np
@@ -68,10 +72,8 @@ class LongProfileModelerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pbGenerateLongProfiles.clicked.connect(self.onpbGenerateLongProfilesclicked)
 
 
-
-
-
     def onpbGenerateSelectedChannelFileclicked(self):
+        #setup input values to pass to the generate_selected_channel_file tool
         nodes_layer = self.mlcbNodes.currentLayer()
         segments_layer = self.mlcbSegments.currentLayer()
         input_segment_id = int(self.qleInputSegmentID.text())
@@ -82,427 +84,48 @@ class LongProfileModelerDialog(QtWidgets.QDialog, FORM_CLASS):
         print("Input Segment:", input_segment_id)
         print("Output File Path:", output_file_path)
 
-        ###############################
-        # Get data into usable format #
-        ###############################
-
-        #Creating a df with important attributes from segments
-        #First some lists of data that is important
-        id = []
-        slope = []
-        toseg = []
-
-        #Now lets fill these lists
-        for segment in segments_layer.getFeatures():
-            #print("Node ID:", segment.id())
-            attrs = segment.attributes()
-            #print(attrs)
-            id.append(attrs[1])
-            slope.append(attrs[5])
-            toseg.append(attrs[2])
-
-        #put the lists into a dictionary and then into a dataframe    
-        data_from_segs = {'id': id, 'slope': slope, 'toseg': toseg}
-
-        dfsegs = pd.DataFrame(data_from_segs)
-        #print(dfsegs)
-
-        #Creating a df with important attributes from nodes
-        lat = []
-        long = []
-        elevation_m = []
-        flow_distance_m = []
-        drainage_area_m2 = []
-        segment_id = []
-
-        for node in nodes_layer.getFeatures():
-            attrs = node.attributes()
-            lat.append(attrs[4])
-            long.append(attrs[5])
-            elevation_m.append(attrs[7])
-            flow_distance_m.append(attrs[8])
-            drainage_area_m2.append(attrs[9])
-            segment_id.append(attrs[18])
-
-        #put the lists into a dictionary and then into a dataframe    
-        data_from_nodes = {'lat': lat, 'long': long, 'elevation_m': elevation_m, 'flow_distance_m': flow_distance_m,
-                                     'drainage_area_m2': drainage_area_m2, 'segment_id': segment_id}
-
-        dfnodes = pd.DataFrame(data_from_nodes)
-        #print(dfnodes)
-
-        ########################
-        # Start Using The Data #
-        ########################
-        
-        #Find out if the input segment is in the segments dataframe.
-        input_segment_id_found = False
-        for seg_id in dfsegs['id']:
-            if seg_id == input_segment_id:
-                input_segment_id_found = True
-                print("Segment ID found.")
-
-            if not input_segment_id_found:
-                print("Error: No segment with the given ID")
-
-        ###############
-        #GENERATE PATH#
-        ###############
-
-        #Begin to generate path.
-
-        #Look up user input seg id, create column is_input w/true and false
-        dfsegs['is_input'] = np.where(dfsegs['id']== input_segment_id, True, False)
-
-        #Create new df called dfpath that is populated by all the true values.
-        dfpath = dfsegs[dfsegs['is_input'] == True]
-
-        #Create the path
-        #Set input_toseg to the self._input_segment_id
-        #Does this generate a duplicate of the first segment?
-        input_toseg = input_segment_id
-        while input_toseg != -1:
-            #find relevant toseg
-            input_toseg=dfpath.loc[dfpath['id']== input_segment_id, 'toseg']
-            #convert to int
-            input_toseg=int(input_toseg)
-            #query dfsegs to find the segment with the same id as toseg
-            dfsegs['is_input'] = np.where(dfsegs['id']== input_toseg, True, False)
-            #take this line and append it to dfpath
-            dfpath = dfpath.append(dfsegs[dfsegs['is_input'] == True])
-            input_segment_id = input_toseg
-            #print(dfpath)
-            
-        #Begin pulling required nodes from segments
-        #Create list of relevant segments
-        queried_segments = []
-        queried_segments_idx = []
-        for seg_id in dfpath['id']:
-            queried_segments.append(seg_id)
-            queried_segments_idx.append(dfsegs.index[dfsegs['id'] == seg_id][0])
-
-        # Approach with nodes already printed
-        path_nodes=[]
-        for _id in queried_segments:
-            path_nodes.append(dfnodes[dfnodes['segment_id'] == _id] )
-
-        #Create a df with relevant nodes in path
-        dfpath_nodes = pd.concat(path_nodes, ignore_index=True)
-
-        #Add slope for each point along path
-        slopes = []
-        for i in range(len(dfpath_nodes)):
-            for j in range(len(dfsegs)):
-                if dfsegs['id'].iloc[j] == dfpath_nodes['segment_id'].iloc[i]:
-                    slopes.append(dfsegs['slope'].iloc[j])
-
-        slopes_s = pd.Series(slopes)
-
-        dfpath_nodes = dfpath_nodes.assign(slope = slopes_s)
-
-        #Test print
-        print("Path Nodes:", dfpath_nodes)
-
-        #########################################################
-        # Create gpkg file for this path and load it as a layer #
-        #########################################################
-        gdf_path = gpd.GeoDataFrame(dfpath_nodes, geometry = gpd.points_from_xy(dfpath_nodes.long, dfpath_nodes.lat))
-        #print(gdf_path)
-
-        #print to gpkg
-        gdf_path.to_file(output_file_path, layer='selected_channel', driver='GPKG', overwrite = 'YES')
-
-        vlayer = QgsVectorLayer(output_file_path, "Selected Channel", "ogr")
-        QgsProject.instance().addMapLayer(vlayer)
-
-
-
-
+        #instantiate and run tool
+        tool = GenerateSelectedChannelFile(nodes_layer, segments_layer, input_segment_id, output_file_path)
+        output = tool.generate_selected_channel_file()
+               
 
     def onpbExitclicked(self):
         print("Plugin Closed")
         self.close()
 
 
-
-
-
     def onpbLoadSelectedChannelclicked(self):
+        #selected_channel_layer = self.mlcbSelectedChannelInput.currentLayer()
+        selected_channel_file = self.fwSelectedChannelInput.filePath()
 
-        if self.fwSelectedChannelInput.filePath() == '':
-            selected_channel = self.mlcbSelectedChannelInput.currentLayer()
-            id = []
-            lat = []
-            long = []
-            elevation_m = []
-            flow_distance_m = []
-            drainage_area_m2 = []
-            segment_id = []
-            slope = []
+        #instantiate and run tool
+        tool = LoadSelectedFile(selected_channel_file)
+        output = tool.load_selected_channel()
 
-            #Now lets fill these lists
-            for point in selected_channel.getFeatures():
-                #print("Node ID:", segment.id())
-                attrs = point.attributes()
-                #print(attrs)
-                id.append(attrs[0])
-                lat.append(attrs[1])
-                long.append(attrs[2])
-                elevation_m.append(attrs[3])
-                flow_distance_m.append(attrs[4])
-                drainage_area_m2.append(attrs[5])
-                segment_id.append(attrs[6])
-                slope.append(attrs[7])
-
-            #put the lists into a dictionary and then into a dataframe    
-            data_from_path = {'id': id, 'lat': lat, 'long': long, 'elevation_m': elevation_m, 'flow_distance_m': flow_distance_m, 'drainage_area_m2': drainage_area_m2, 'segment_id': segment_id,'slope': slope}
-
-            dfpath_nodes = pd.DataFrame(data_from_path)
-
-        else:
-            #import the chosen drainage path from the file
-            selected_channel = self.fwSelectedChannelInput.filePath()
-            dfpath_nodes = gpd.read_file(selected_channel)
-            #print (dfpath_nodes)
-
-
-        #create a list of drainage areas for slope-area analysis
-        drainage_area_as = []
-        for i in range(len(dfpath_nodes)):
-            da = float(dfpath_nodes['drainage_area_m2'][i])
-            drainage_area_as.append(da)
-
-        #create a list of slopes
-        slope = []
-        for i in range(len(dfpath_nodes)):
-            sl = float(dfpath_nodes['slope'][i])
-            slope.append(sl)
-
-
-
-        #Plot in log-log space using matplotlib
-        fig, ax = plt.subplots()
-        plt.xscale("log")
-        plt.yscale("log")
-        plt.scatter(drainage_area_as, slope, label = 'Selected Channel')
-        ax.set_xlabel("Drainage Area (m2)")
-        ax.set_ylabel("Slope")
-        leg = ax.legend()
-        fig.show()
-
-    
-
-
-
-    def onpbCalculateFitclicked(self):
         
-        if self.fwSelectedChannelInput.filePath() == '':
-            selected_channel = self.mlcbSelectedChannelInput.currentLayer()
-            id = []
-            lat = []
-            long = []
-            elevation_m = []
-            flow_distance_m = []
-            drainage_area_m2 = []
-            segment_id = []
-            slope = []
+    def onpbCalculateFitclicked(self):
+        selected_channel_file = self.fwSelectedChannelInput.filePath()
+        sbMinValue = self.sbMinValue.value()
+        sbMaxValue = self.sbMaxValue.value()
+        sbMinExponent = self.sbMinExponent.value()
+        sbMaxExponent = self.sbMaxExponent.value()
+        qleKsValue = self.qleKsValue
+        qleThetaValue = self.qleThetaValue
+        cbShowFit = self.cbShowFit
 
-            #Now lets fill these lists
-            for point in selected_channel.getFeatures():
-                #print("Node ID:", segment.id())
-                attrs = point.attributes()
-                #print(attrs)
-                id.append(attrs[0])
-                lat.append(attrs[1])
-                long.append(attrs[2])
-                elevation_m.append(attrs[3])
-                flow_distance_m.append(attrs[4])
-                drainage_area_m2.append(attrs[5])
-                segment_id.append(attrs[6])
-                slope.append(attrs[7])
-
-            #put the lists into a dictionary and then into a dataframe    
-            data_from_path = {'id': id, 'lat': lat, 'long': long, 'elevation_m': elevation_m, 'flow_distance_m': flow_distance_m, 'drainage_area_m2': drainage_area_m2, 'segment_id': segment_id,'slope': slope}
-
-            dfpath_nodes = pd.DataFrame(data_from_path)
-
-        else:
-            #import the chosen drainage path from the file
-            selected_channel = self.fwSelectedChannelInput.filePath()
-            dfpath_nodes = gpd.read_file(selected_channel)
-            #print (dfpath_nodes)
-
-        #create fit range values from user inputs
-        min = self.sbMinValue.value() * (10**self.sbMinExponent.value())
-        max = self.sbMaxValue.value() * (10**self.sbMaxExponent.value())
-        print('Min:', min)
-        print('Max:', max)
-
-        #create lists for all points for drainage area and slope
-        drainage_area = []
-        for i in range(len(dfpath_nodes)):
-            da = float(dfpath_nodes['drainage_area_m2'][i])
-            drainage_area.append(da)
-
-        #create a list of slopes
-        slope = []
-        for i in range(len(dfpath_nodes)):
-            sl = float(dfpath_nodes['slope'][i])
-            slope.append(sl)
-
-        #create a list of drainage areas for slope-area analysis
-        drainage_area_as = []
-        for i in range(len(dfpath_nodes)):
-            if dfpath_nodes['drainage_area_m2'][i] <= max and dfpath_nodes['drainage_area_m2'][i] >= min:
-                da = float(dfpath_nodes['drainage_area_m2'][i])
-                drainage_area_as.append(da)
-
-        #create a list of slopes
-        slope_as = []
-        for i in range(len(dfpath_nodes)):
-            if dfpath_nodes['drainage_area_m2'][i] <= max and dfpath_nodes['drainage_area_m2'][i] >= min:
-                sl = float(dfpath_nodes['slope'][i])
-                slope_as.append(sl)
-
-        ##############################
-        #Find values for ks and theta#
-        ##############################
-        #power law:
-        def power_law(drainage_area, ks, theta):
-            slope = ks*(drainage_area**(-theta))
-            return slope
-
-        #find trendline in log-log space
-        # Fit the dummy power-law data
-        pars, cov = curve_fit(f=power_law, xdata=drainage_area_as, ydata=slope_as, p0=[0, 0], bounds=(-np.inf, np.inf))
-
-        ks = pars[0]
-        theta = pars[1]
-
-        self.qleKsValue.setText(str(ks))
-        self.qleThetaValue.setText(str(theta))
-
-        #Plot both the raw data and the fit in log-log space using matplotlib
-        if self.cbShowFit.isChecked():
-            fig, ax = plt.subplots()
-            plt.xscale("log")
-            plt.yscale("log")
-            plt.scatter(drainage_area, slope, label = 'Selected Channel')
-            ax.plot(drainage_area_as, power_law(drainage_area_as, *pars), linestyle='--', linewidth=2, color='black')
-            ax.set_xlabel("Drainage Area (m2)")
-            ax.set_ylabel("Slope")
-            leg = ax.legend()
-            fig.show()
-
-
-
+        #instantiate and run tool
+        tool = DrainageAreaSlope(selected_channel_file, sbMinValue, sbMaxValue, sbMinExponent, sbMaxExponent, qleKsValue, qleThetaValue, cbShowFit)
+        output = tool.calculate_fit()
 
 
     def onpbGenerateLongProfilesclicked(self):
-        if self.fwSelectedChannelInput.filePath() == '':
-            selected_channel = self.mlcbSelectedChannelInput.currentLayer()
-            id = []
-            lat = []
-            long = []
-            elevation_m = []
-            flow_distance_m = []
-            drainage_area_m2 = []
-            segment_id = []
-            slope = []
+        selected_channel_file = self.fwSelectedChannelInput.filePath()
+        cbIncludeSelectedChannelData = self.cbIncludeSelectedChannelData
+        cbIncludeModeledData = self.cbIncludeModeledData
+        qleLongProfileFigureTitle = self.qleLongProfileFigureTitle
+        qleKsValue = self.qleKsValue
+        qleThetaValue = self.qleThetaValue
 
-            #Now lets fill these lists
-            for point in selected_channel.getFeatures():
-                #print("Node ID:", segment.id())
-                attrs = point.attributes()
-                #print(attrs)
-                id.append(attrs[0])
-                lat.append(attrs[1])
-                long.append(attrs[2])
-                elevation_m.append(attrs[3])
-                flow_distance_m.append(attrs[4])
-                drainage_area_m2.append(attrs[5])
-                segment_id.append(attrs[6])
-                slope.append(attrs[7])
-
-            #put the lists into a dictionary and then into a dataframe    
-            data_from_path = {'id': id, 'lat': lat, 'long': long, 'elevation_m': elevation_m, 'flow_distance_m': flow_distance_m, 'drainage_area_m2': drainage_area_m2, 'segment_id': segment_id,'slope': slope}
-
-            dfpath_nodes = pd.DataFrame(data_from_path)
-
-        else:
-            #import the chosen drainage path from the file
-            selected_channel = self.fwSelectedChannelInput.filePath()
-            dfpath_nodes = gpd.read_file(selected_channel)
-            #print (dfpath_nodes)
-
-        def power_law(drainage_area, ks, theta):
-            slope = ks*(drainage_area**(-theta))
-            return slope
-
-        #create a list of drainage areas for modeling purposes
-        drainage_area = []
-        for i in range(len(dfpath_nodes)):
-            da = float(dfpath_nodes['drainage_area_m2'][i])
-            drainage_area.append(da)
-
-        #model slopes 
-        ks = float(self.qleKsValue.text())
-        theta = float(self.qleThetaValue.text())
-
-        slope_model = []
-        for i in range(len(dfpath_nodes)):
-            sm = power_law(drainage_area[i], ks, theta)
-            slope_model.append(sm)
-
-        #Use modeled slopes to model elevation at each point
-        #use the function y = mx + b to calculate the elevation using slope, distance and initial point.
-
-        #find initial elevation:
-        initial_elevation = dfpath_nodes['elevation_m'][0]
-
-        #create a list of distances between each point
-        distance = []
-        for i in range(len(dfpath_nodes)):
-            if i + 1 == len(dfpath_nodes):
-                print('Done finding distances between nodes')
-            else:
-                di = dfpath_nodes['flow_distance_m'][i] - dfpath_nodes['flow_distance_m'][i+1]
-                distance.append(di)
-
-        #create a list of elevation changes for each point
-        elevation_change = []
-        for i in range(len(distance)):
-            ec = distance[i] * slope_model[i]
-            elevation_change.append(ec)
-
-        #model elevation at each point
-        elevation = []
-        for i in range(len(elevation_change)):
-            if i == 0:
-                el = initial_elevation
-            else:
-                el = elevation[i-1] - elevation_change[i]
-            
-            elevation.append(el)
-        elevation.append(el)
-
-        
-        #Now for the plotting
-        fig, ax = plt.subplots()
-        ax.set_xlabel("Distance Upstream (km)")
-        ax.set_ylabel("Elevation Above Mouth (m)")
-        ax.legend()
-        ax.set_title(self.qleLongProfileFigureTitle.text())
-
-        if self.cbIncludeSelectedChannelData.isChecked():
-            plt.scatter(dfpath_nodes['flow_distance_m']/1000, dfpath_nodes['elevation_m'], label = 'Selected Channel Long Profile')
-        
-        if self.cbIncludeModeledData.isChecked():
-            plt.scatter(dfpath_nodes["flow_distance_m"]/1000, elevation, label = 'Modeled Long Profile Pre-Disturbance')
-
-        fig.show()
-
-
-
-
-
+        #instantiate and run tool
+        tool = GenerateLongProfiles(selected_channel_file, cbIncludeSelectedChannelData, cbIncludeModeledData, qleLongProfileFigureTitle, qleKsValue, qleThetaValue)
+        output = tool.generate_long_profiles()
