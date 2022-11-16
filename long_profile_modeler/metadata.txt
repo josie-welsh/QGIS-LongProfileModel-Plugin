@@ -5,12 +5,12 @@
 [general]
 name=Long Profile Modeler
 qgisMinimumVersion=3.0
-description=Creates Long Profiles from lsdtt-network-tool outputs
+description=Creates long profiles fron LSDTT outputs
 version=0.1
 author=Josie Welsh
 email=welsh162@umn.edu
 
-about=This plugin uses outputs from the lsdtt-network-tool to create river long profile plots and model paleo-long profiles. It uses drainage area-slope analyses to create the model.
+about=This tool generates river long profiles from LSDTopoTools outputs and models paleo-long-profiles through slope-area analyses of the LSDTT outputs
 
 tracker=http://bugs
 repository=http://repo
