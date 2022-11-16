@@ -1,9 +1,9 @@
 #/***************************************************************************
 # LongProfileModeler
 #
-# Creates Long Profiles from lsdtt-network-tool outputs
+# Creates long profiles fron LSDTT outputs
 #							 -------------------
-#		begin				: 2022-08-24
+#		begin				: 2022-11-16
 #		git sha				: $Format:%H$
 #		copyright			: (C) 2022 by Josie Welsh
 #		email				: welsh162@umn.edu
